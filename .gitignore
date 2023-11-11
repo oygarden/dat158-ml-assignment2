@@ -467,3 +467,9 @@ $RECYCLE.BIN/
 # Google Drive. Brukt te å synkronisera file når eg jobbe på fleire maskina
 .tmp.driveupload/
 .tmp.drivedownload/
+
+# Image files
+/images
+*.png
+*.jpg
+*.jpeg
