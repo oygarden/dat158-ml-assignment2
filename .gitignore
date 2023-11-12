@@ -473,3 +473,7 @@ $RECYCLE.BIN/
 *.png
 *.jpg
 *.jpeg
+
+# Pickle
+*.pkl
+*.pickle

@@ -1,127 +1,105 @@
-import geocoder
-import requests
+import PySimpleGUI as sg
+import pickle
 import os
-from datetime import datetime
+import threading
 
-# Retrieve users geolocation
-geoloc = geocoder.ip('me')
+sg.theme('Topanga')
 
-user_lat = geoloc.lat
-user_lon = geoloc.lng
+# Check if OPENAI_API_KEY environment variable is set
+if os.environ.get("OPENAI_API_KEY") is not None:
+    api_key = os.environ.get("OPENAI_API_KEY")
+else:
+    api_key = ""
 
-print("User coordinates: " + str(user_lat) + ", " + str(user_lon))
-
-# Parameters for retrieving weather forecast (latitude and longitude)
-payload = {
-    "lat": user_lat,
-    "lon": user_lon
-}
-
-# URL for weather forecast API
-weather_api_url = 'https://api.met.no/weatherapi/locationforecast/2.0/compact?'
-
-response = requests.get(weather_api_url, params=payload)
-
-if response.status_code != 200:
-    print("Status code: " + str(response.status_code) + ". Something went wrong.")
-
-response_json = response.json()
-
-weather = response_json['properties']['timeseries'][1]['data']['instant']['details']
-
-user_location = geoloc.city + ", " + geoloc.country
-time = response_json['properties']['timeseries'][1]['time']
-temperature = weather['air_temperature']
-cloud_area_fraction = weather['cloud_area_fraction']
-relative_humidity = weather['relative_humidity']
-wind_speed = weather['wind_speed']
-
-next_1_hour = response_json['properties']['timeseries'][1]['data']['next_1_hours']['summary']['symbol_code']
-
-weather_description = "User location: " + user_location + "\nTime: " + str(time) + "\nTemperature: " + str(temperature)+ "\nCloud area fraction: " + str(cloud_area_fraction) + "\nRelative humidity: " + str(relative_humidity) + "\nWind speed: " + str(wind_speed) + "\nDescription: " + next_1_hour
-
-print(weather_description)
-
-# The user should be able to specify the style of the image to be generated
-user_preferences = "\nStyle: " + "Vincent van Gogh"
+# Check if preference file exists
+if os.path.isfile("preferences.pickle"):
+    with open("preferences.pickle", "rb") as f:
+        data = pickle.load(f)
 
 
-# OpenAI
-from openai import OpenAI
+else:
+    # Define default preferences
+    if not os.path.isdir(os.getcwd() + "\\images"):
+        os.mkdir(os.getcwd() + "\\images")
 
-client = OpenAI()
+    path = os.getcwd() + "\\images"
 
-#API call for generating descriptive prompt for generation of wallpaper
-chat_completion = client.chat.completions.create(
-   model="gpt-3.5-turbo",
-   messages= [
-       {"role":"system", "content":"You generate a detailed description of the general atmosphere based on the weather forecast, location and user preferences to be used in image generation in 200 characters or less. Specify style and content of the image of your own choosing."},
-       {"role": "user", "content": "%s %s" % (weather_description, user_preferences)}
-   ]
+    data = {
+        "FOLDER": path,
+        "PREFERENCES": "",
+        "UPDATE_INTERVAL": "2",  # In hours
+        "QUALITY": "hd",
+        "STYLE": "vivid",
+        "OPENAI_API_KEY": api_key,
+        "LOCATION_OVERRIDE": ""
+    }
+
+    with open("preferences.pickle", "wb") as f:
+        pickle.dump(data, f)
+
+    with open("preferences.pickle", "rb") as f:
+        data = pickle.load(f)
+
+window = sg.Window(
+    title="Wallpaper Generator",
+    layout=[
+        [sg.Column([[sg.Text('Image Folder'), sg.In(size=(25, 1), enable_events=True, key='-FOLDER-', default_text=data["FOLDER"]),
+                     sg.FolderBrowse(initial_folder=data["FOLDER"],)],[sg.Text('Image Preference'), sg.In(size=(25, 1), enable_events=True, key='-PREFERENCE-', default_text=data["PREFERENCES"])],
+        [sg.Text('Location Override'), sg.In(size=(25, 1), enable_events=True, key='-LOCATION_OVERRIDE-', default_text=data["LOCATION_OVERRIDE"])],
+        [sg.Text('OpenAI API Key'), sg.In(size=(25, 1), enable_events=True, key='-API_KEY-', default_text=data["OPENAI_API_KEY"])],
+        [sg.Text('Quality'), sg.OptionMenu(values=['hd', 'standard'], default_value=data["QUALITY"], key='-QUALITY-')],
+        [sg.Text('Style'), sg.OptionMenu(values=['vivid', 'natural'], default_value=data["STYLE"], key='-STYLE-')],
+        [sg.Text('Update interval (hours)'), sg.Slider((1,24), default_value=data["UPDATE_INTERVAL"], orientation='h', key='-UPDATE_INTERVAL-', enable_events=True)],
+        [sg.Button("Apply changes"), sg.Button("Generate wallpaper now"), sg.Button("Close")]], element_justification='c')],
+
+    ],
+    margins=(200, 100),
+    resizable=True
 )
 
-# Retrieve prompt from API response
-prompt = chat_completion.choices[0].message.content
-print(prompt)
+while True:
+    event, values = window.read()
+    if event in (sg.WIN_CLOSED, 'Close'):
+        break
+    if event == 'Apply changes':
 
-# API call for generating wallpaper using dall-e-3 model
-image_completion = client.images.generate(
-    model="dall-e-3",
-    prompt=prompt,
-    size="1792x1024",
-    quality="standard",
-    n=1,
-)
+        # Make sure api key is set
+        if data["OPENAI_API_KEY"] == "":
+            sg.Popup("Please set OPENAI_API_KEY environment variable.")
 
-# Retrieve image URL from API response
-image_url = image_completion.data[0].url
+        else:
+            with open("preferences.pickle", "wb") as f:
+                pickle.dump(data, f)
 
-# Download image
-image = requests.get(image_url)
+    if event == 'Generate wallpaper now':
 
-# Define save directory
-save_directory_name = "images"
-save_directory = os.path.join(os.curdir, save_directory_name)
+        t2 = threading.Thread(target=exec(open("generate_wallpaper.py").read()))
 
-# Create image name based on current date and time
-image_name = datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".png"
+        t2.start()
 
-# If directory does not exist, create it
-if not os.path.isdir(save_directory):
-    os.mkdir(save_directory)
-
-# Define image path
-image_path = os.path.join(save_directory, image_name)
-
-if image.status_code == 200:
-
-    with open(image_path, "wb") as image_file:
-        image_file.write(image.content)
-        image_file.close()
-        print(f'Image was saved as {image_name} in {save_directory_name} directory.')
+        t2.join()
 
 
+    if event == '-FOLDER-':
+        data["FOLDER"] = values['-FOLDER-']
 
-# Set wallpaper
-import os
-import ctypes
-import platform
+    if event == '-PREFERENCE-':
+        data["PREFERENCES"] = values['-PREFERENCE-']
 
-def set_wallpaper(image_name):
-    system = platform.system().lower()
+    if event == '-LOCATION_OVERRIDE-':
+        data["LOCATION_OVERRIDE"] = values['-LOCATION_OVERRIDE-']
 
-    path = ''
+    if event == '-API_KEY-':
+        data["OPENAI_API_KEY"] = values['-API_KEY-']
 
-    if system == 'windows':
-        path = os.getcwd() + '\\images\\' + image_name
+    if event == '-QUALITY-':
+        data["QUALITY"] = values['-QUALITY-']
+
+    if event == '-STYLE-':
+        data["STYLE"] = values['-STYLE-']
+
+    if event == '-UPDATE_INTERVAL-':
+        data["UPDATE_INTERVAL"] = values['-UPDATE_INTERVAL-']
 
 
-        # BOOL SystemParametersInfoW(
-        #    UINT  uiAction,
-        #    UINT  uiParam,
-        #    PVOID pvParam,
-        #    UINT  fWinIni
-        # );
-        ctypes.windll.user32.SystemParametersInfoW(20, 0, path, 0)
-
-set_wallpaper(image_name)
+window.close()
