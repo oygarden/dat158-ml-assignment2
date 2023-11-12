@@ -1,7 +1,7 @@
 import PySimpleGUI as sg
 import pickle
 import os
-import threading
+import generate_wallpaper
 
 sg.theme('Topanga')
 
@@ -72,12 +72,7 @@ while True:
                 pickle.dump(data, f)
 
     if event == 'Generate wallpaper now':
-
-        t2 = threading.Thread(target=exec(open("generate_wallpaper.py").read()))
-
-        t2.start()
-
-        t2.join()
+        generate_wallpaper.main()
 
 
     if event == '-FOLDER-':

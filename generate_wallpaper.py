@@ -99,7 +99,7 @@ def generate_prompt(weather_description, user_preferences):
     return generated_prompt
 
 
-def generate_image(image_prompt, quality, style, directory):
+def generate_image(image_prompt, quality, style, save_directory):
     client = OpenAI()
 
     # API call for generating wallpaper using dall-e-3 model
@@ -117,10 +117,6 @@ def generate_image(image_prompt, quality, style, directory):
 
     # Download image
     image = requests.get(image_url)
-
-    # Define save directory
-    save_directory_name = "images"
-    save_directory = directory #os.path.join(os.curdir, save_directory_name)
 
     # Create image name based on current date and time
     image_name = datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".png"
@@ -151,37 +147,40 @@ def set_wallpaper(image_path):
 
     if system == "windows":
         # BOOL SystemParametersInfoW(
-        #    UINT  uiAction,
+        #    UINT  uiAction,            # 20 -> SPI_SETDESKWALLPAPER = set desktop wallpaper
         #    UINT  uiParam,
-        #    PVOID pvParam,
-        #    UINT  fWinIni
+        #    PVOID pvParam,             # Path to image
+        #    UINT  fWinIni              # 3 -> SPIF_SENDWININICHANGE = Save update
         # );
         ctypes.windll.user32.SystemParametersInfoW(20, 0, path, 3)
 
     print("Wallpaper was set.")
 
 
-#########################################################################################
+# Main function
+def main():
+    # Load preferences
+    with open("preferences.pickle", "rb") as f:
+        data = pickle.load(f)
 
-# Load preferences
-with open("preferences.pickle", "rb") as f:
-    data = pickle.load(f)
+    geoloc = get_user_geoloc()
 
-geoloc = get_user_geoloc()
+    # Check if location override is set
+    if data["LOCATION_OVERRIDE"] != "":
+        geoloc = geocoder.osm(data["LOCATION_OVERRIDE"])
 
-# Check if location override is set
-if data["LOCATION_OVERRIDE"] != "":
-    geoloc = geocoder.osm(data["LOCATION_OVERRIDE"])
+    weather_description = get_weather_description(geoloc)
 
-weather_description = get_weather_description(geoloc)
+    user_preferences = data["PREFERENCES"]
 
-user_preferences = data["PREFERENCES"]
+    # Generate a prompt based on weather description and user preferences
+    prompt = generate_prompt(weather_description, user_preferences)
 
-# Generate a prompt based on weather description and user preferences
-prompt = generate_prompt(weather_description, user_preferences)
+    # Generate image
+    image_path = generate_image(prompt, data["QUALITY"], data["STYLE"], data["FOLDER"])
 
-# Generate image
-image_path = generate_image(prompt, data["QUALITY"], data["STYLE"], data["FOLDER"])
+    # Set the generated image as desktop wallpaper
+    set_wallpaper(image_path)
 
-# Set the generated image as desktop wallpaper
-set_wallpaper(image_path)
+
+

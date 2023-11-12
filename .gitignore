@@ -477,3 +477,5 @@ $RECYCLE.BIN/
 # Pickle
 *.pkl
 *.pickle
+
+*.zip
