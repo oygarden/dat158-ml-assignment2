@@ -470,9 +470,6 @@ $RECYCLE.BIN/
 
 # Image files
 /images
-*.png
-*.jpg
-*.jpeg
 
 # Pickle
 *.pkl

@@ -72,9 +72,8 @@ def get_weather_description(geoloc):
 
 # OpenAI
 # Define function for generating prompt for image generation using OpenAI API
-def generate_prompt(weather_description, user_preferences):
+def generate_prompt(weather_description, user_preferences, client):
     # API call for generating descriptive prompt for generation of wallpaper
-    client = OpenAI()
 
     chat_completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -99,8 +98,7 @@ def generate_prompt(weather_description, user_preferences):
     return generated_prompt
 
 
-def generate_image(image_prompt, quality, style, save_directory):
-    client = OpenAI()
+def generate_image(image_prompt, quality, style, save_directory, client):
 
     # API call for generating wallpaper using dall-e-3 model
     image_completion = client.images.generate(
@@ -173,11 +171,15 @@ def main():
 
     user_preferences = data["PREFERENCES"]
 
+    client = OpenAI()
+
+    client.api_key = data["OPENAI_API_KEY"]
+
     # Generate a prompt based on weather description and user preferences
-    prompt = generate_prompt(weather_description, user_preferences)
+    prompt = generate_prompt(weather_description, user_preferences, client)
 
     # Generate image
-    image_path = generate_image(prompt, data["QUALITY"], data["STYLE"], data["FOLDER"])
+    image_path = generate_image(prompt, data["QUALITY"], data["STYLE"], data["FOLDER"], client)
 
     # Set the generated image as desktop wallpaper
     set_wallpaper(image_path)
