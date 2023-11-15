@@ -1,8 +1,8 @@
 # Location-based wallpaper generation
 
 Group 11:
-- Bjørn Egil Øygarden
-- Bjørn-Sigurd Sælevik Fjose
+- [Bjørn Egil Øygarden](https://github.com/oygarden)
+- [Bjørn-Sigurd Sælevik Fjose](https://github.com/TrainBear)
 
 This is a simple script that generates a wallpaper based on your location, time, and weather.
 
