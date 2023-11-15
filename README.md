@@ -1,10 +1,10 @@
-# Location-based wallpaper generation
-
 Group 11:
 - [Bjørn Egil Øygarden](https://github.com/oygarden)
 - [Bjørn-Sigurd Sælevik Fjose](https://github.com/TrainBear)
 
-This is a simple script that generates a wallpaper based on your location, time, and weather.
+# Location-based wallpaper generation (DAT158 ML Assignment #2: Generative AI-powered application)
+
+This is a script that generates a wallpaper based on your location, time, and weather.
 
 Demo video can be found [here](https://www.youtube.com/watch?v=mz4rmKMZqrA).
 
